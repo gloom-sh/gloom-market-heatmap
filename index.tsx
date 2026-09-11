@@ -367,8 +367,18 @@ export const marketHeatmapPlugin: GloomPlugin = {
   // Screener JSON over HTTPS plus the host's live quote feed, so every
   // renderer. Neither Nasdaq nor Yahoo sends CORS headers, which is why the
   // hosts are declared: the web app proxies them.
+  //
+  // `fc.yahoo.com` is not fetched here directly. The Yahoo screener is behind a
+  // crumb, and `YahooHttpClient` collects it from there — a host reached on this
+  // plugin's behalf still has to be declared, or the web app has nothing to
+  // proxy it through and every Yahoo universe fails.
   targets: ["cli", "tui", "desktop", "web"],
-  hosts: ["api.nasdaq.com", "query1.finance.yahoo.com", "query2.finance.yahoo.com"],
+  hosts: [
+    "api.nasdaq.com",
+    "fc.yahoo.com",
+    "query1.finance.yahoo.com",
+    "query2.finance.yahoo.com",
+  ],
 
   dispose() {
     resetMarketHeatmapCache();
