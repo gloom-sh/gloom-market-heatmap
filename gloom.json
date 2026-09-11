@@ -1,0 +1,27 @@
+{
+  "id": "market-heatmap",
+  "name": "Market Heatmap",
+  "icon": "icon.svg",
+  "tagline": "Largest US stocks and ETFs, sized by market cap and colored by daily move",
+  "description": "A treemap of the largest US stocks or ETFs, sized by market cap or net assets and colored by the day's move, with live quotes streamed through Gloom's quote feed. Arrow keys walk the tiles; select one to open the ticker.",
+  "categories": [
+    "markets"
+  ],
+  "targets": [
+    "cli",
+    "tui",
+    "desktop",
+    "web"
+  ],
+  "hosts": [
+    "api.nasdaq.com",
+    "query1.finance.yahoo.com",
+    "query2.finance.yahoo.com"
+  ],
+  "contributes": {
+    "panes": [
+      "market-heatmap"
+    ]
+  },
+  "minGloom": "0.15.0"
+}
