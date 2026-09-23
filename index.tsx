@@ -6,6 +6,7 @@ import {
   MetricTreemapSurface,
   Tabs,
   usePaneFooter,
+  usePaneHeaderTabs,
   type MetricTreemapDirection,
   type MetricTreemapItem,
 } from "gloomberb/components";
@@ -36,6 +37,8 @@ import {
   overlayScreenerQuoteEntries,
   resolveScreenerQuoteFeedStatus,
 } from "gloomberb/quotes";
+
+const UNIVERSE_TABS = MARKET_HEATMAP_UNIVERSES.map((universe) => ({ label: universe.label, value: universe.id as string }));
 
 function formatMoneyCompact(value: number | null | undefined, currency: string): string {
   if (value == null) return "—";
@@ -105,7 +108,21 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const fetchGenRef = useRef(0);
 
-  const chartHeight = Math.max(1, height - 1);
+  const selectUniverse = useCallback((value: string) => {
+    setActiveUniverse(value as MarketHeatmapUniverseId);
+    setSelectedSymbol(null);
+  }, [setActiveUniverse]);
+  // The pane's only partition: the desktop draws it in the title bar, which
+  // gives the treemap the row the strip used to take.
+  const tabsInHeader = usePaneHeaderTabs({
+    tabs: UNIVERSE_TABS,
+    activeValue: activeUniverse,
+    onSelect: selectUniverse,
+    focused,
+    keyboardNavigation: false,
+  });
+
+  const chartHeight = Math.max(1, height - (tabsInHeader ? 0 : 1));
   const chartWidth = Math.max(1, width - 2);
   const cellAspect = Math.max(0.5, Math.min(4, cellHeightPx / Math.max(1, cellWidthPx)));
   const quoteTargets = useMemo(
@@ -328,20 +345,19 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
 
   return (
     <Box flexDirection="column" width={width} height={height}>
-      <Box height={1} paddingX={1}>
-        <Tabs
-          tabs={MARKET_HEATMAP_UNIVERSES.map((universe) => ({ label: universe.label, value: universe.id }))}
-          activeValue={activeUniverse}
-          onSelect={(value) => {
-            setActiveUniverse(value as MarketHeatmapUniverseId);
-            setSelectedSymbol(null);
-          }}
-          compact
-          variant="bare"
-          focused={focused}
-          keyboardNavigation={false}
-        />
-      </Box>
+      {!tabsInHeader && (
+        <Box height={1} paddingX={1}>
+          <Tabs
+            tabs={UNIVERSE_TABS}
+            activeValue={activeUniverse}
+            onSelect={selectUniverse}
+            compact
+            variant="bare"
+            focused={focused}
+            keyboardNavigation={false}
+          />
+        </Box>
+      )}
 
       <MetricTreemapSurface
         items={displayItems}
