@@ -3,8 +3,11 @@ import { Box, useUiCapabilities } from "gloomberb/ui";
 import {
   buildMetricTreemapNavigationTiles,
   findMetricTreemapNeighbor,
+  loadingText,
   MetricTreemapSurface,
+  PaneStatusBody,
   Tabs,
+  unavailableText,
   usePaneFooter,
   usePaneHeaderTabs,
   type MetricTreemapDirection,
@@ -39,6 +42,8 @@ import {
 } from "gloomberb/quotes";
 
 const UNIVERSE_TABS = MARKET_HEATMAP_UNIVERSES.map((universe) => ({ label: universe.label, value: universe.id as string }));
+const NO_ASSETS: MarketHeatmapAsset[] = [];
+const EMPTY_TITLE = "No market heatmap data.";
 
 function formatMoneyCompact(value: number | null | undefined, currency: string): string {
   if (value == null) return "—";
@@ -101,12 +106,17 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   // A pane setting, not private pane state, so the settings dialog can show it.
   const [activeUniverse, setActiveUniverse] = usePaneSettingValue<MarketHeatmapUniverseId>("universe", "us-equity");
   const [assets, setAssets] = useState<MarketHeatmapAsset[]>([]);
+  // The universe `assets` came from. A board is drawn only under its own tab,
+  // so a switch never paints the previous universe's tiles.
+  const [loadedUniverse, setLoadedUniverse] = useState<MarketHeatmapUniverseId | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   // The first load starts before the effect runs; an empty board is not "no data".
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const fetchGenRef = useRef(0);
+  const boardAssets = loadedUniverse === activeUniverse ? assets : NO_ASSETS;
+  const hasBoard = boardAssets.length > 0;
 
   const selectUniverse = useCallback((value: string) => {
     setActiveUniverse(value as MarketHeatmapUniverseId);
@@ -126,8 +136,8 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   const chartWidth = Math.max(1, width - 2);
   const cellAspect = Math.max(0.5, Math.min(4, cellHeightPx / Math.max(1, cellWidthPx)));
   const quoteTargets = useMemo(
-    () => buildScreenerQuoteTargets(assets, selectedSymbol),
-    [assets, selectedSymbol],
+    () => buildScreenerQuoteTargets(boardAssets, selectedSymbol),
+    [boardAssets, selectedSymbol],
   );
   const {
     entries: liveQuoteEntries,
@@ -138,8 +148,8 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
     liveStreaming,
   });
   const resolvedAssets = useMemo(
-    () => overlayScreenerQuoteEntries(assets, liveQuoteEntries),
-    [assets, liveQuoteEntries],
+    () => overlayScreenerQuoteEntries(boardAssets, liveQuoteEntries),
+    [boardAssets, liveQuoteEntries],
   );
   const feedStatus = useMemo(
     () => resolveScreenerQuoteFeedStatus(quoteTargets, liveQuoteEntries, {
@@ -177,14 +187,13 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
       });
       if (fetchGenRef.current !== gen) return;
       setAssets(result.assets);
+      setLoadedUniverse(universe);
       setLastUpdated(result.fetchedAt);
       // Selection is the user's; the effect below only fills it when it is gone.
     } catch {
       if (fetchGenRef.current !== gen) return;
-      setAssets([]);
-      setLastUpdated(null);
-      setSelectedSymbol(null);
-      setLoadError("Market heatmap temporarily unavailable");
+      // A failed refresh keeps the board it had; the footer says it failed.
+      setLoadError(unavailableText("Market heatmap"));
     } finally {
       if (fetchGenRef.current === gen) setLoading(false);
     }
@@ -195,9 +204,9 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   }, [activeUniverse, loadUniverse]);
 
   useEffect(() => {
-    if (selectedSymbol && assets.some((asset) => asset.symbol === selectedSymbol)) return;
-    setSelectedSymbol(assets[0]?.symbol ?? null);
-  }, [assets, selectedSymbol]);
+    if (selectedSymbol && boardAssets.some((asset) => asset.symbol === selectedSymbol)) return;
+    setSelectedSymbol(boardAssets[0]?.symbol ?? null);
+  }, [boardAssets, selectedSymbol]);
 
   const refresh = useCallback(() => {
     void loadUniverse(activeUniverse, { forceRefresh: true });
@@ -224,9 +233,9 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   }, [pinTicker]);
 
   const selectIndex = useCallback((index: number) => {
-    const asset = assets[index];
+    const asset = boardAssets[index];
     if (asset) setSelectedSymbol(asset.symbol);
-  }, [assets]);
+  }, [boardAssets]);
 
   const selectNeighbor = useCallback((direction: MetricTreemapDirection) => {
     const target = findMetricTreemapNeighbor(navigationTiles, selectedSymbol, direction);
@@ -268,7 +277,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
     if (isPlainKey(event, "j")) {
       event.preventDefault();
       event.stopPropagation();
-      selectIndex(Math.min((activeIdx >= 0 ? activeIdx : 0) + 1, assets.length - 1));
+      selectIndex(Math.min((activeIdx >= 0 ? activeIdx : 0) + 1, boardAssets.length - 1));
       return;
     }
     if (isPlainKey(event, "k")) {
@@ -308,7 +317,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
     }
   });
 
-  const updated = useUpdatedAgo(lastUpdated);
+  const updated = useUpdatedAgo(loadedUniverse === activeUniverse ? lastUpdated : null);
   useAutoRefresh(lastUpdated, refresh);
 
   usePaneFooter("market-heatmap", () => ({
@@ -331,17 +340,14 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
         parts: [{ text: `updated ${updated}`, tone: "muted" as const }],
       }] : []),
       ...(loading ? [{ id: "loading", parts: [{ text: "loading", tone: "muted" as const }] }] : []),
-      ...(loadError ? [{ id: "error", parts: [{ text: "error", tone: "muted" as const }] }] : []),
+      // Without a board the body carries the failure.
+      ...(loadError && hasBoard ? [{ id: "error", parts: [{ text: "refresh failed", tone: "warning" as const }] }] : []),
       ...(feedStatus ? [{
         id: "feed",
         parts: [{ text: feedStatus, tone: feedStatus === "live" ? "value" as const : "muted" as const }],
       }] : []),
     ],
-  }), [feedStatus, loadError, loading, selectedAsset, updated]);
-
-  const emptyStateTitle = loading
-    ? "Loading market heatmap..."
-    : loadError ?? "No market heatmap data";
+  }), [feedStatus, hasBoard, loadError, loading, selectedAsset, updated]);
 
   return (
     <Box flexDirection="column" width={width} height={height}>
@@ -359,15 +365,23 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
         </Box>
       )}
 
-      <MetricTreemapSurface
-        items={displayItems}
-        width={width}
-        height={chartHeight}
-        selectedId={selectedSymbol}
-        onSelect={(item) => setSelectedSymbol(item.data.symbol)}
-        onActivate={(item) => openSymbol(item.data.symbol)}
-        emptyStateTitle={emptyStateTitle}
-      />
+      <PaneStatusBody
+        loading={loading && !hasBoard}
+        loadingLabel={loadingText("market heatmap")}
+        error={hasBoard ? null : loadError}
+        empty={!hasBoard}
+        emptyTitle={EMPTY_TITLE}
+      >
+        <MetricTreemapSurface
+          items={displayItems}
+          width={width}
+          height={chartHeight}
+          selectedId={selectedSymbol}
+          onSelect={(item) => setSelectedSymbol(item.data.symbol)}
+          onActivate={(item) => openSymbol(item.data.symbol)}
+          emptyStateTitle={EMPTY_TITLE}
+        />
+      </PaneStatusBody>
     </Box>
   );
 }

@@ -14,7 +14,7 @@ Open `HM` in the command bar. Also in the hosted web app at term.gloom.sh, where
 
 ## Usage
 
-`h`/`j`/`k`/`l` or the arrow keys walk the tiles; activate one to open the ticker. `1` and `2` pick a universe directly, `[` and `]` step through them, `r` refreshes. The universe is also in pane settings, and live streaming toggles from the pane header. The footer says whether quotes are live, mixed, or polled.
+`h`/`j`/`k`/`l` or the arrow keys walk the tiles; activate one to open the ticker. The universe tabs sit in the pane title bar on the desktop and at the top of the pane in the terminal; `1` and `2` pick one directly, `[` and `]` step through them, `r` refreshes. The universe is also in pane settings, and live streaming toggles from the pane header. The footer shows the selected tile's price and move, when the board updated, and whether quotes are live, mixed, or polling. A failed refresh keeps the last board up and says so in the footer.
 
 ## Data
 
