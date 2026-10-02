@@ -113,6 +113,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   // The first load starts before the effect runs; an empty board is not "no data".
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const fetchGenRef = useRef(0);
   const boardAssets = loadedUniverse === activeUniverse ? assets : NO_ASSETS;
@@ -189,6 +190,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
       setAssets(result.assets);
       setLoadedUniverse(universe);
       setLastUpdated(result.fetchedAt);
+      setStale(result.stale === true);
       // Selection is the user's; the effect below only fills it when it is gone.
     } catch {
       if (fetchGenRef.current !== gen) return;
@@ -339,6 +341,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
         id: "updated",
         parts: [{ text: `updated ${updated}`, tone: "muted" as const }],
       }] : []),
+      ...(hasBoard && stale ? [{ id: "stale", parts: [{ text: "stale", tone: "warning" as const }] }] : []),
       ...(loading ? [{ id: "loading", parts: [{ text: "loading", tone: "muted" as const }] }] : []),
       // Without a board the body carries the failure.
       ...(loadError && hasBoard ? [{ id: "error", parts: [{ text: "refresh failed", tone: "warning" as const }] }] : []),
@@ -347,7 +350,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
         parts: [{ text: feedStatus, tone: feedStatus === "live" ? "value" as const : "muted" as const }],
       }] : []),
     ],
-  }), [feedStatus, hasBoard, loadError, loading, selectedAsset, updated]);
+  }), [feedStatus, hasBoard, loadError, loading, selectedAsset, stale, updated]);
 
   return (
     <Box flexDirection="column" width={width} height={height}>
@@ -394,21 +397,9 @@ export const marketHeatmapPlugin: GloomPlugin = {
   homepage: "https://github.com/gloom-sh/gloom-market-heatmap",
   toggleable: true,
 
-  // Screener JSON over HTTPS plus the host's live quote feed, so every
-  // renderer. Neither Nasdaq nor Yahoo sends CORS headers, which is why the
-  // hosts are declared: the web app proxies them.
-  //
-  // `fc.yahoo.com` is not fetched here directly. The Yahoo screener is behind a
-  // crumb, and `YahooHttpClient` collects it from there — a host reached on this
-  // plugin's behalf still has to be declared, or the web app has nothing to
-  // proxy it through and every Yahoo universe fails.
+  // Universe snapshots and live quotes both come through the Gloom service.
   targets: ["cli", "tui", "desktop", "web"],
-  hosts: [
-    "api.nasdaq.com",
-    "fc.yahoo.com",
-    "query1.finance.yahoo.com",
-    "query2.finance.yahoo.com",
-  ],
+  hosts: ["api.gloom.sh"],
 
   dispose() {
     resetMarketHeatmapCache();

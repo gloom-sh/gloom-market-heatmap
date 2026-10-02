@@ -10,7 +10,7 @@ Requires Gloom 0.15.0 or newer. Gloom restores this plugin once for existing ins
 gloomberb install gloom-sh/gloom-market-heatmap
 ```
 
-Open `HM` in the command bar. Also in the hosted web app at term.gloom.sh, where the host proxies the data source.
+Open `HM` in the command bar. Also in the hosted web app at term.gloom.sh, with the same market data as the desktop and terminal.
 
 ## Usage
 
@@ -18,7 +18,7 @@ Open `HM` in the command bar. Also in the hosted web app at term.gloom.sh, where
 
 ## Data
 
-The list of names comes from the Nasdaq and Yahoo Finance screeners (`api.nasdaq.com`, `query1.finance.yahoo.com`). Prices after that come through Gloom's own quote feed, so they use whichever provider is configured, including Gloom Cloud when signed in.
+Universe snapshots come from Gloom's backend (`api.gloom.sh`). Prices update through the host's quote feed, including connected brokers. Delayed snapshots work without signing in.
 
 ## Development
 
