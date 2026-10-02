@@ -7,7 +7,6 @@ import {
   Tabs,
   usePaneFooter,
   usePaneHeaderTabs,
-  usePaneStatusFooter,
   type MetricTreemapDirection,
   type MetricTreemapItem,
 } from "gloomberb/components";
@@ -314,8 +313,6 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   const updated = useUpdatedAgo(lastUpdated);
   useAutoRefresh(lastUpdated, refresh);
 
-  usePaneStatusFooter({ registrationId: "market-heatmap-retained", stale: assets.length > 0 && stale });
-
   usePaneFooter("market-heatmap", () => ({
     info: [
       ...(selectedAsset ? [{
@@ -335,6 +332,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
         id: "updated",
         parts: [{ text: `updated ${updated}`, tone: "muted" as const }],
       }] : []),
+      ...(assets.length > 0 && stale ? [{ id: "stale", parts: [{ text: "stale", tone: "warning" as const }] }] : []),
       ...(loading ? [{ id: "loading", parts: [{ text: "loading", tone: "muted" as const }] }] : []),
       ...(loadError ? [{ id: "error", parts: [{ text: "error", tone: "muted" as const }] }] : []),
       ...(feedStatus ? [{
@@ -342,7 +340,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
         parts: [{ text: feedStatus, tone: feedStatus === "live" ? "value" as const : "muted" as const }],
       }] : []),
     ],
-  }), [feedStatus, loadError, loading, selectedAsset, updated]);
+  }), [assets.length, feedStatus, loadError, loading, selectedAsset, stale, updated]);
 
   const emptyStateTitle = loading
     ? "Loading market heatmap..."
