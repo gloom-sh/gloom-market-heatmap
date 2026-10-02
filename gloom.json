@@ -14,10 +14,7 @@
     "web"
   ],
   "hosts": [
-    "api.nasdaq.com",
-    "fc.yahoo.com",
-    "query1.finance.yahoo.com",
-    "query2.finance.yahoo.com"
+    "api.gloom.sh"
   ],
   "contributes": {
     "panes": [
