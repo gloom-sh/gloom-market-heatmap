@@ -29,3 +29,11 @@ test("rejects failed and mismatched universe responses", async () => {
     await expect(fetchMarketHeatmap("us-equity", { cache: false }, { fetch: async () => response })).rejects.toThrow("Market heatmap unavailable");
   }
 });
+
+for (const staleLocation of ["envelope", "data"] as const) test(`retained ${staleLocation} status keeps the original timestamp and valid assets`, async () => {
+  const result = await fetchMarketHeatmap("us-equity", { cache: false }, { fetch: async () => Response.json({
+    status: "partial", stale: staleLocation === "envelope",
+    data: { universe: "us-equity", source: "gloom", fetchedAt: 1234, stale: staleLocation === "data", assets: [asset] },
+  }) });
+  expect(result).toMatchObject({ fetchedAt: 1234, stale: true, assets: [asset] });
+});

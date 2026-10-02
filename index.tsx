@@ -7,6 +7,7 @@ import {
   Tabs,
   usePaneFooter,
   usePaneHeaderTabs,
+  usePaneStatusFooter,
   type MetricTreemapDirection,
   type MetricTreemapItem,
 } from "gloomberb/components";
@@ -105,6 +106,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
   // The first load starts before the effect runs; an empty board is not "no data".
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const fetchGenRef = useRef(0);
 
@@ -178,6 +180,7 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
       if (fetchGenRef.current !== gen) return;
       setAssets(result.assets);
       setLastUpdated(result.fetchedAt);
+      setStale(result.stale === true);
       // Selection is the user's; the effect below only fills it when it is gone.
     } catch {
       if (fetchGenRef.current !== gen) return;
@@ -310,6 +313,8 @@ function MarketHeatmapPane({ focused, width, height }: PaneProps) {
 
   const updated = useUpdatedAgo(lastUpdated);
   useAutoRefresh(lastUpdated, refresh);
+
+  usePaneStatusFooter({ registrationId: "market-heatmap-retained", stale: assets.length > 0 && stale });
 
   usePaneFooter("market-heatmap", () => ({
     info: [

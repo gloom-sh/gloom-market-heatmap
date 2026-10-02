@@ -33,6 +33,7 @@ export interface MarketHeatmapAsset {
 }
 
 export interface MarketHeatmapResult {
+  stale?: boolean;
   universe: MarketHeatmapUniverseId;
   source: MarketHeatmapSource;
   fetchedAt: number;
@@ -57,10 +58,10 @@ async function loadMarketHeatmap(universe: MarketHeatmapUniverseId, count: numbe
     signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) throw new Error(`[${response.status}] Market heatmap unavailable`);
-  const payload = await response.json() as { status?: string; data?: MarketHeatmapResult };
+  const payload = await response.json() as { status?: string; stale?: boolean; data?: MarketHeatmapResult };
   if (!payload.data || !Array.isArray(payload.data.assets) || payload.data.universe !== universe
     || (payload.status !== "success" && payload.status !== "partial")) throw new Error("Market heatmap unavailable");
-  return { ...payload.data, assets: payload.data.assets.slice(0, count) };
+  return { ...payload.data, stale: payload.stale === true || payload.data.stale === true, assets: payload.data.assets.slice(0, count) };
 }
 
 export async function fetchMarketHeatmap(
