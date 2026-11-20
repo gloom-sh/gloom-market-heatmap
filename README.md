@@ -2,7 +2,9 @@
 
 A treemap of the largest US stocks or ETFs, sized by market cap or net assets and colored by the day's move, with live quotes streamed through Gloom's quote feed.
 
-## Install
+> Market Heatmap is built into Gloom v0.15.3 and later: open `HM` in the command bar, with nothing to install from here. This repository is for older versions.
+
+## Install on older versions
 
 Requires Gloom 0.15.0 or newer. Gloom restores this plugin once for existing installations when it moves out of the core app: saved panes keep working because the pane and template ids are unchanged, a previously disabled plugin stays disabled, and a deliberate removal is respected.
 
